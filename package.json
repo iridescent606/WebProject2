@@ -1,0 +1,7 @@
+{
+  "name": "web-project-root",
+  "private": true,
+  "scripts": {
+    "build": "cd anime-archive && npm run build"
+  }
+}
