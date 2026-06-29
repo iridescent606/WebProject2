@@ -19,9 +19,17 @@ interface AuthState {
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
   setUser: (user: User | null) => void;
+  clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+// Setup global listener for token expiry
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:logout', () => {
+    useAuthStore.getState().clearAuth();
+  });
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: !!localStorage.getItem('accessToken'),
   isLoading: false,
@@ -43,22 +51,30 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     const refreshToken = localStorage.getItem('refreshToken');
     try {
-      await authAPI.logout(refreshToken || '');
-    } catch {}
+      if (refreshToken) {
+        await authAPI.logout(refreshToken);
+      }
+    } catch {
+      // Token already invalid, just clear
+    }
+    get().clearAuth();
+  },
+
+  clearAuth: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     set({ user: null, isAuthenticated: false });
   },
 
   fetchUser: async () => {
+    if (!get().isAuthenticated) return;
     set({ isLoading: true });
     try {
       const { data } = await authAPI.me();
       set({ user: data, isAuthenticated: true, isLoading: false });
     } catch {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      get().clearAuth();
+      set({ isLoading: false });
     }
   },
 

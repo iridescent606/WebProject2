@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Dropdown, Avatar, Space, theme as antdTheme } from 'antd';
+import { Layout, Menu, Button, Dropdown, Avatar, Space } from 'antd';
 import {
   HomeOutlined,
   TeamOutlined,
   VideoCameraOutlined,
-  TagsOutlined,
   UserOutlined,
   LoginOutlined,
   LogoutOutlined,
@@ -31,8 +30,17 @@ export default function MainLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    navigate('/', { replace: true });
   };
+
+  // Listen for forced logout from token expiry
+  useEffect(() => {
+    const handler = () => {
+      navigate('/login', { replace: true });
+    };
+    window.addEventListener('auth:logout', handler);
+    return () => window.removeEventListener('auth:logout', handler);
+  }, [navigate]);
 
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: '首页' },
@@ -46,6 +54,16 @@ export default function MainLayout() {
     { type: 'divider' as const },
     { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
   ];
+
+  // Compute selected menu key based on current path
+  function getSelectedKey() {
+    if (location.pathname === '/') return ['/'];
+    const parts = location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 1) {
+      return ['/' + parts[0]];
+    }
+    return ['/'];
+  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -64,14 +82,14 @@ export default function MainLayout() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
           <div
-            style={{ fontSize: 20, fontWeight: 700, cursor: 'pointer', color: '#722ed1' }}
+            style={{ fontSize: 20, fontWeight: 700, cursor: 'pointer', color: '#722ed1', userSelect: 'none' }}
             onClick={() => navigate('/')}
           >
             🎬 动漫档案
           </div>
           <Menu
             mode="horizontal"
-            selectedKeys={[location.pathname === '/' ? '/' : '/' + location.pathname.split('/')[1]]}
+            selectedKeys={getSelectedKey()}
             items={menuItems}
             onClick={({ key }) => navigate(key)}
             style={{ border: 'none', background: 'transparent', flex: 1 }}
@@ -95,7 +113,7 @@ export default function MainLayout() {
                   onClick: ({ key }) => {
                     if (key === 'logout') handleLogout();
                     else if (key === 'compare') navigate('/characters/compare');
-                    else navigate(`/${key}`);
+                    else navigate('/profile');
                   },
                 }}
               >
@@ -123,7 +141,7 @@ export default function MainLayout() {
       </Content>
 
       <Footer style={{ textAlign: 'center', background: darkMode ? '#141414' : '#fafafa' }}>
-        <div>🎬 动漫人物档案 © 2026 · Built with React + Node.js + Ant Design</div>
+        <div>🎬 动漫人物档案 © 2026 · Powered by Cloudflare Workers</div>
       </Footer>
     </Layout>
   );

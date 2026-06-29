@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuthStore } from './store/authStore';
 import MainLayout from './layouts/MainLayout';
@@ -24,10 +24,20 @@ export default function App() {
     }
   }, []);
 
-  if (isLoading) {
+  // Listen for forced navigation events (token expiry)
+  useEffect(() => {
+    const handler = () => {
+      // Token expired, auth store will handle cleanup
+    };
+    window.addEventListener('auth:expired', handler);
+    return () => window.removeEventListener('auth:expired', handler);
+  }, []);
+
+  // Only show global loader on very first load when checking stored token
+  if (isLoading && isAuthenticated) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
+        <Spin size="large" tip="加载中..." />
       </div>
     );
   }
@@ -41,12 +51,14 @@ export default function App() {
         <Route path="/anime" element={<AnimeListPage />} />
         <Route path="/anime/:id" element={<AnimeDetailPage />} />
         <Route path="/characters" element={<CharacterListPage />} />
-        <Route path="/characters/:id" element={<CharacterDetailPage />} />
+        {/* Static routes BEFORE dynamic :id */}
         <Route path="/characters/new" element={<CharacterFormPage />} />
-        <Route path="/characters/:id/edit" element={<CharacterFormPage />} />
         <Route path="/characters/compare" element={<CharacterComparePage />} />
+        <Route path="/characters/:id/edit" element={<CharacterFormPage />} />
+        <Route path="/characters/:id" element={<CharacterDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin/tags" element={<TagManagePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

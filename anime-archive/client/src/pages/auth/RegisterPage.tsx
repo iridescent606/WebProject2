@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, message, Space } from 'antd';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../store/authStore';
 
@@ -8,17 +8,22 @@ const { Title, Text } = Typography;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const register = useAuthStore((s) => s.register);
+  const { register, isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   const onFinish = async (values: { email: string; username: string; password: string }) => {
     setLoading(true);
     try {
       await register(values.email, values.username, values.password);
       message.success('注册成功！');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err: any) {
-      message.error(err.response?.data?.error || '注册失败');
+      const msg = err?.response?.data?.error || err?.message || '注册失败，请检查网络连接';
+      message.error(msg);
     } finally {
       setLoading(false);
     }
