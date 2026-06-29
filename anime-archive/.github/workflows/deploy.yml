@@ -9,9 +9,6 @@ jobs:
   deploy-worker:
     name: Deploy Worker
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: worker
     steps:
       - uses: actions/checkout@v4
 
@@ -21,25 +18,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: worker/package-lock.json
 
+      - name: Setup wrangler.toml
+        run: |
+          cp wrangler.toml worker/wrangler.toml
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd worker
+          npm ci
 
-      - name: Copy wrangler config to worker
-        run: cp ../wrangler.toml ./wrangler.toml
-
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy --config ./wrangler.toml
+        run: |
+          cd worker
+          npx wrangler deploy
 
   deploy-pages:
     name: Deploy Pages (Frontend)
     runs-on: ubuntu-latest
     needs: deploy-worker
-    defaults:
-      run:
-        working-directory: client
     steps:
       - uses: actions/checkout@v4
 
@@ -50,15 +49,21 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd client
+          npm ci
 
       - name: Build frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
-        run: npm run build
+        run: |
+          cd client
+          npm run build
 
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler pages deploy dist --project-name=anime-archive
+        run: |
+          cd client
+          npx wrangler pages deploy dist --project-name=anime-archive
