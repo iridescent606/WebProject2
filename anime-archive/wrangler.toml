@@ -1,0 +1,31 @@
+# Anime Archive - Cloudflare Workers + D1 + R2
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "anime-archive-api"
+main = "worker/src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker configuration
+[observability]
+enabled = true
+
+# D1 Database
+# After creating the D1 database in Cloudflare dashboard, fill in database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "anime-archive-db"
+database_id = "CHANGE_ME_TO_YOUR_D1_DATABASE_ID"
+
+# R2 Bucket for image storage
+# After creating the R2 bucket in Cloudflare dashboard, fill in bucket_name
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "anime-archive-images"
+
+# Environment variables
+# NOTE: Move JWT secrets to `wrangler secret put` for production!
+[vars]
+NODE_ENV = "development"
+JWT_ACCESS_SECRET = "dev-access-secret-change-in-production"
+JWT_REFRESH_SECRET = "dev-refresh-secret-change-in-production"
